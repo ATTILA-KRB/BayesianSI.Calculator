@@ -4,7 +4,8 @@
 
 BSI is a Bayesian statistical analysis tool designed for rapid calculation and visualization of statistical intervals from MCMC output data. It provides both an R package for programmatic access and a Shiny application for interactive analysis.
 
-<img width="1833" height="779" alt="image" src="https://github.com/user-attachments/assets/0be4942f-4323-4224-b173-93140e139254" />
+<img width="1833" height="779" alt="image" src="https://github.com/user-attachments/assets/94d58c42-2273-48ce-bf78-0587246ecce3" />
+
 
 The package allows users to:
 - Calculate and visualize credible, prediction, and tolerance intervals from MCMC samples
