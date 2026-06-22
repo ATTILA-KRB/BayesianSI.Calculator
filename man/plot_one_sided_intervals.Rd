@@ -8,7 +8,9 @@ plot_one_sided_intervals(
   data,
   show_reducible = FALSE,
   log_normal = FALSE,
-  selected_by_values = NULL
+  selected_by_values = NULL,
+  x_axis_title = NULL,
+  is_single_chain = NULL
 )
 }
 \arguments{
@@ -20,6 +22,12 @@ By, Median, CI_Lower, CI_Upper, PI_Lower, PI_Upper, TI_Lower, TI_Upper}
 \item{log_normal}{Logical, whether values are in log-normal scale (default = FALSE)}
 
 \item{selected_by_values}{Optional vector of specific by values to include in the plot}
+
+\item{x_axis_title}{Character, custom title for x-axis. If NULL (default), the
+title is inferred from whether the data represents a single chain.}
+
+\item{is_single_chain}{Logical, whether to force single-chain styling. If NULL
+(default), this is inferred from the data via an internal heuristic.}
 }
 \value{
 A list containing two plotly objects:
