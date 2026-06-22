@@ -32,6 +32,10 @@ library(ggplot2)
 library(grid)
 library(plotly)
 
+# Interval calculations come from the package itself, so the app and the
+# package share a single, unit-tested implementation.
+library(BayesianStatisticalIntervalsCalculator)
+
 # Computes confidence ellipse coordinates from covariance and center without external dependencies.
 create_confidence_ellipse_points <- function(cov_matrix,
                                              centre,
@@ -356,17 +360,17 @@ ui <- fluidPage(
 
       sliderInput("tolerance_level",
                   HTML("Tolerance Interval (%)<br>Probability Level"),
-                  min = 0, max = 100, value = 90, step = 0.5),
+                  min = 0.5, max = 99.5, value = 90, step = 0.5),
 
       sliderInput("confidence_of_tolerance",
                   HTML("Tolerance Interval (%)<br>Credibility Level"),
-                  min = 0, max = 100, value = 80, step = 0.5),
+                  min = 0.5, max = 99.5, value = 80, step = 0.5),
 
       sliderInput("percent_for_pi", "Prediction Interval (%)",
-                  min = 0, max = 100, value = 90, step = 0.5),
+                  min = 0.5, max = 99.5, value = 90, step = 0.5),
 
       sliderInput("percent_for_ci", "Credible Interval (%)",
-                  min = 0, max = 100, value = 90, step = 0.5),
+                  min = 0.5, max = 99.5, value = 90, step = 0.5),
 
       actionButton("calculate_ci", "Calculate Intervals", class = "btn-primary"),
 
@@ -895,172 +899,6 @@ server <- function(input, output, session) {
       add_interval_lines(d)
 
     return(list(normal = normal_plot, cumulative = cumulative_plot, id = id))
-  }
-
-  calculate_ci <- function(data, ColToAggregate, PercentForCI, ByColumn) {
-    # Convert to data.table if not already
-    if (!is.data.table(data)) {
-      dt <- as.data.table(data)
-    } else {
-      dt <- data
-    }
-
-    if (!ColToAggregate %in% names(dt) || !ByColumn %in% names(dt)) {
-      stop(paste("Column", ColToAggregate, "or", ByColumn, "not found in the dataframe"))
-    }
-
-    # Calculate alpha and slice once
-    alpha <- 1 - PercentForCI/100
-    slice <- alpha / 2
-
-    # Use data.table syntax for faster grouping and calculation
-    results <- dt[, .(
-      N = .N,
-      CI_Lower = quantile(get(ColToAggregate), slice),
-      CI_Upper = quantile(get(ColToAggregate), 1 - slice),
-      Median = median(get(ColToAggregate))
-    ), by = ByColumn]
-
-    return(as.data.frame(results))
-  }
-
-  calculate_tolerance_interval <- function(data, LowerColToAggregate, UpperColToAggregate, ConfidenceLevel, ByColumn) {
-    # Convert to data.table if not already
-    if (!is.data.table(data)) {
-      dt <- as.data.table(data)
-    } else {
-      dt <- data
-    }
-
-    if (!LowerColToAggregate %in% names(dt) || !UpperColToAggregate %in% names(dt) || !ByColumn %in% names(dt)) {
-      stop(paste("One or more required columns not found in the dataframe"))
-    }
-
-    # Calculate confidence parameters once
-    confidence_alpha <- 1 - ConfidenceLevel/100
-    confidence_slice <- confidence_alpha / 2
-
-    # Use data.table syntax for faster grouping and calculation
-    results <- dt[, .(
-      N = .N,
-      Lower_Lower = quantile(get(LowerColToAggregate), confidence_slice),
-      Lower_Upper = quantile(get(LowerColToAggregate), 1 - confidence_slice),
-      Upper_Lower = quantile(get(UpperColToAggregate), confidence_slice),
-      Upper_Upper = quantile(get(UpperColToAggregate), 1 - confidence_slice)
-    ), by = ByColumn]
-
-    # Add TI columns
-    results[, `:=`(
-      TI_Lower = Lower_Lower,
-      TI_Upper = Upper_Upper
-    )]
-
-    # Select only needed columns
-    results <- results[, .(By = get(ByColumn), TI_Lower, TI_Upper)]
-
-    return(as.data.frame(results))
-  }
-
-  calculate_PI <- function(data, percent_for_pi, Eta = 0.001) {
-    # Check inputs
-    if (!is.data.frame(data) || !is.numeric(percent_for_pi) ||
-        percent_for_pi <= 0 || percent_for_pi >= 100) {
-      stop("Invalid input parameters")
-    }
-
-    # Convert to data.table for faster processing
-    dt <- as.data.table(data)
-
-    # Calculate PI_request1 and PI_request2
-    alpha <- 1 - percent_for_pi / 100
-    slice <- alpha / 2
-    PI_request1 <- slice
-    PI_request2 <- 1 - slice
-
-    # Vectorized bisection method
-    find_PI_vectorized <- function(PI_requests, means, sds) {
-      # Initialize result vector
-      results <- numeric(length(means))
-
-      # Set initial bounds to 99.99% and 0.001% of the distribution
-      ax_vector <- qnorm(0.0001, mean = means, sd = sds)
-      bx_vector <- qnorm(0.9999, mean = means, sd = sds)
-
-      # Check if PI_request is within the initial bounds
-      if (any(PI_requests < 0.0001) || any(PI_requests > 0.9999)) {
-        stop("PI request is outside the 99.99% - 0.001% range of the distribution")
-      }
-
-      # Pre-allocate vectors for efficiency
-      cx_vector <- numeric(length(means))
-      cy_vector <- numeric(length(means))
-      ay_vector <- numeric(length(means))
-      by_vector <- numeric(length(means))
-
-      # Perform bisection for each element
-      for (iteration in 1:500) {
-        # Calculate function values at bounds
-        ay_vector <- pnorm(ax_vector, mean = means, sd = sds) - PI_requests
-        by_vector <- pnorm(bx_vector, mean = means, sd = sds) - PI_requests
-
-        # Check convergence
-        if (all(abs(by_vector - ay_vector) < Eta)) {
-          break
-        }
-
-        # Calculate midpoints
-        cx_vector <- (ax_vector + bx_vector) / 2
-        cy_vector <- pnorm(cx_vector, mean = means, sd = sds) - PI_requests
-
-        # Update bounds
-        update_ax <- sign(cy_vector) == sign(ay_vector)
-        ax_vector[update_ax] <- cx_vector[update_ax]
-        bx_vector[!update_ax] <- cx_vector[!update_ax]
-      }
-
-      # Return midpoint as result
-      return((ax_vector + bx_vector) / 2)
-    }
-
-    if (length(unique(dt$By)) == 1) {
-      # Single chain case - MODIFIED: Use mean instead of first row
-      selected_mean <- mean(dt$mean)  # Changed back to using mean
-      selected_sd <- sqrt(mean(dt$variance))  # Changed back to using mean
-
-      # Create vectors of the same length for vectorized calculation
-      means_vector <- rep(selected_mean, 2)
-      sds_vector <- rep(selected_sd, 2)
-      requests_vector <- c(PI_request1, PI_request2)
-      pi_values <- find_PI_vectorized(requests_vector, means_vector, sds_vector)
-
-      result_dt <- data.table(
-        By = unique(dt$By),
-        PI_Lower = pi_values[1],
-        PI_Upper = pi_values[2]
-      )
-    } else {
-      # Multiple groups case - MODIFIED: Use mean instead of first row
-      # Group by "By" column and calculate means
-      by_groups <- dt[, .(mean = mean(mean), variance = mean(variance)), by = By]
-
-      # Calculate PI for each group
-      pi_results <- by_groups[, {
-        selected_mean <- mean
-        selected_sd <- sqrt(variance)
-
-        # Create vectors for vectorized calculation
-        means_vector <- rep(selected_mean, 2)
-        sds_vector <- rep(selected_sd, 2)
-        requests_vector <- c(PI_request1, PI_request2)
-        pi_values <- find_PI_vectorized(requests_vector, means_vector, sds_vector)
-
-        .(PI_Lower = pi_values[1], PI_Upper = pi_values[2])
-      }, by = By]
-
-      result_dt <- pi_results
-    }
-
-    return(as.data.frame(result_dt))
   }
 
   performCalculations <- function(switch_tab = FALSE) {
