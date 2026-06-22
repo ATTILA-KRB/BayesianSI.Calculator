@@ -1,3 +1,17 @@
+## About this fork
+
+This is a fork of [`Sanofi-Public/BayesianSI.Calculator`](https://github.com/Sanofi-Public/BayesianSI.Calculator). It keeps the same features and public API but focuses on **removing duplicated logic between the bundled Shiny app and the R package**, together with stronger testing and CI.
+
+Key changes relative to the original:
+
+- **Single source of truth.** The Shiny app (`inst/shiny/app.R`) previously carried its own private copies of many package functions. It now calls the package's exported, unit-tested implementations for all interval calculations (`calculate_ci`, `calculate_tolerance_interval`, `calculate_PI`, `calculate_predicted_distributions` and the Krishnamoorthy helpers), input parsing/inspection (`parse_x_value_input`, `inspect_data`), reducible imprecision (`reducible_fraction`), table formatting (`format_intervals_table`) and plotting (`plot_intervals`, `plot_one_sided_intervals`). This removed more than a thousand lines of duplicated app code.
+- **Newly exported / generalized package functions.** `reducible_fraction`, `create_confidence_ellipse_points` and `inspect_data` are now exported; `format_intervals_table`, `plot_intervals`, `plot_one_sided_intervals` and `perform_calculations` gained optional, **backward-compatible** parameters so the app can drive them without re-implementing their logic.
+- **Input validation & UI guards.** Added input validation to the shared helpers and constrained the interval sliders to valid ranges (0.5–99.5%) to avoid degenerate 0%/100% intervals.
+- **Testing & CI.** Expanded the test suite to ~180 unit tests; CI runs `R CMD check`, lint and a security scan, plus a `shinytest2` smoke test that boots the Shiny app.
+
+All changes preserve the package's existing public behavior — existing callers and tests continue to work unchanged.
+
+
 # BayesianStatisticalIntervalsCalculator (BSI)
 
 ## Overview
@@ -14,18 +28,7 @@ The package allows users to:
 - Generate interactive visualizations of statistical intervals
 - Include error handling and data validation 
 
-## About this fork
 
-This is a fork of [`Sanofi-Public/BayesianSI.Calculator`](https://github.com/Sanofi-Public/BayesianSI.Calculator). It keeps the same features and public API but focuses on **removing duplicated logic between the bundled Shiny app and the R package**, together with stronger testing and CI.
-
-Key changes relative to the original:
-
-- **Single source of truth.** The Shiny app (`inst/shiny/app.R`) previously carried its own private copies of many package functions. It now calls the package's exported, unit-tested implementations for all interval calculations (`calculate_ci`, `calculate_tolerance_interval`, `calculate_PI`, `calculate_predicted_distributions` and the Krishnamoorthy helpers), input parsing/inspection (`parse_x_value_input`, `inspect_data`), reducible imprecision (`reducible_fraction`), table formatting (`format_intervals_table`) and plotting (`plot_intervals`, `plot_one_sided_intervals`). This removed more than a thousand lines of duplicated app code.
-- **Newly exported / generalized package functions.** `reducible_fraction`, `create_confidence_ellipse_points` and `inspect_data` are now exported; `format_intervals_table`, `plot_intervals`, `plot_one_sided_intervals` and `perform_calculations` gained optional, **backward-compatible** parameters so the app can drive them without re-implementing their logic.
-- **Input validation & UI guards.** Added input validation to the shared helpers and constrained the interval sliders to valid ranges (0.5–99.5%) to avoid degenerate 0%/100% intervals.
-- **Testing & CI.** Expanded the test suite to ~180 unit tests; CI runs `R CMD check`, lint and a security scan, plus a `shinytest2` smoke test that boots the Shiny app.
-
-All changes preserve the package's existing public behavior — existing callers and tests continue to work unchanged.
 
 ## Installation
 
