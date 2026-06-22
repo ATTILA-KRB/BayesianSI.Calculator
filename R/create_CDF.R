@@ -119,7 +119,7 @@ create_CDF <- function(data = NULL, fixed_effects = NULL, random_params = NULL,
 
   # Calculate parameters - using MEAN not MEDIAN (for location parameter)
   overall_median <- mean(data$mean)  # Use mean of means for centering
-  overall_sd <- sqrt(mean(data$variance))
+  overall_sd <- sqrt(pmax(mean(data$variance), 1e-10))
 
   # Generate x values in log space
   xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
@@ -131,7 +131,7 @@ create_CDF <- function(data = NULL, fixed_effects = NULL, random_params = NULL,
 
   # Calculate CDF values for each observation
   y_values <- do.call(rbind, lapply(1:nrow(data), function(i) {
-    pnorm(x_values_log, mean = data$mean[i], sd = sqrt(data$variance[i]))
+    pnorm(x_values_log, mean = data$mean[i], sd = sqrt(pmax(data$variance[i], 1e-10)))
   }))
 
   # KEY CHANGE: Use MEDIAN instead of MEAN for central tendency

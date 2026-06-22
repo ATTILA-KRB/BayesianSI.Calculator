@@ -108,7 +108,8 @@ plot_intervals <- function(result, show_reducible = FALSE, x_axis_title = NULL,
   # Add reducible uncertainty ribbons if enabled
   if (show_reducible) {
     for (i in 1:nrow(data)) {
-      by_val <- as.numeric(data$By[i])
+      by_val <- suppressWarnings(as.numeric(data$By[i]))
+      if (is.na(by_val)) by_val <- i  # fall back to row index for non-numeric By
       by_label <- as.character(data$By[i])
       ribbon_width <- 0.15
 
@@ -148,7 +149,8 @@ plot_intervals <- function(result, show_reducible = FALSE, x_axis_title = NULL,
 
   # Add intervals for each By value
   for (i in 1:nrow(data)) {
-    by_val <- as.numeric(data$By[i])
+    by_val <- suppressWarnings(as.numeric(data$By[i]))
+    if (is.na(by_val)) by_val <- i  # fall back to row index for non-numeric By
     by_label <- as.character(data$By[i])
 
     # Add CI intervals (red)

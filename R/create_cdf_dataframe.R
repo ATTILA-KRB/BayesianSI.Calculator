@@ -69,7 +69,7 @@ create_cdf_dataframe <- function(pred_dist, by_value, n_points = 20,
 
   # Calculate parameters
   overall_median <- data$median[1]
-  overall_sd <- sqrt(data$variance[1])
+  overall_sd <- sqrt(pmax(data$variance[1], 1e-10))
 
   # Generate x values in log space
   xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
@@ -83,7 +83,7 @@ create_cdf_dataframe <- function(pred_dist, by_value, n_points = 20,
 
   # Calculate CDF values for each observation
   y_values <- do.call(rbind, lapply(1:nrow(data), function(i) {
-    pnorm(x_values_log, mean = data$median[i], sd = sqrt(data$variance[i]))
+    pnorm(x_values_log, mean = data$median[i], sd = sqrt(pmax(data$variance[i], 1e-10)))
   }))
 
   # Calculate mean CDF

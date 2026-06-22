@@ -114,10 +114,8 @@ perform_calculations <- function(data,
     combined_result[log_cols] <- lapply(combined_result[log_cols], exp)
 
     # Recalculate reducible uncertainty after transformation
-    combined_result$ReducibleUpper <- ((combined_result$TI_Upper - combined_result$PI_Upper) /
-                                         (combined_result$TI_Upper - combined_result$Median))
-    combined_result$ReducibleLower <- ((combined_result$TI_Lower - combined_result$PI_Lower) /
-                                         (combined_result$TI_Lower - combined_result$Median))
+    combined_result$ReducibleUpper <- reducible_fraction(combined_result$TI_Upper, combined_result$PI_Upper, combined_result$Median)
+    combined_result$ReducibleLower <- reducible_fraction(combined_result$TI_Lower, combined_result$PI_Lower, combined_result$Median)
     combined_result$ReducibleUpper <- round(combined_result$ReducibleUpper * 100, 3)
     combined_result$ReducibleLower <- round(combined_result$ReducibleLower * 100, 3)
   }
