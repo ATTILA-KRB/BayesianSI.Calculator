@@ -54,10 +54,10 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
   overall_median <- data$median[1]
   overall_sd <- sqrt(data$variance[1])
 
-  # Generate x values in log space
-  xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
-  xmax_log <- qnorm(0.9999, mean = overall_median, sd = overall_sd)
-  x_values_log <- seq(xmin_log, xmax_log, length.out = n_points)
+  # Generate x values in log space (these are the bounds of the CDF domain)
+  data_xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
+  data_xmax_log <- qnorm(0.9999, mean = overall_median, sd = overall_sd)
+  x_values_log <- seq(data_xmin_log, data_xmax_log, length.out = n_points)
 
   # Transform x values for display if log_normal is TRUE
   x_values <- if(log_normal) exp(x_values_log) else x_values_log
@@ -116,7 +116,7 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
     x_val_log <- if(log_normal) log(x_val) else x_val
 
     # Check if the log value is in range
-    if (x_val_log >= xmin_log && x_val_log <= xmax_log) {
+    if (x_val_log >= data_xmin_log && x_val_log <= data_xmax_log) {
       # Always use interpolation for precise values - exactly as in the app
       y_val <- approx(x_values_log, y_mean, xout = x_val_log)$y
       ci_lower_val <- approx(x_values_log, ci_lower, xout = x_val_log)$y
@@ -159,9 +159,9 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
     xmin_log <- if(log_normal) log(xmin) else xmin
     xmax_log <- if(log_normal) log(xmax) else xmax
 
-    # Check if both values are in range
-    if (xmin_log >= xmin_log && xmin_log <= xmax_log &&
-        xmax_log >= xmin_log && xmax_log <= xmax_log) {
+    # Check if both user-supplied bounds fall within the CDF domain
+    if (xmin_log >= data_xmin_log && xmin_log <= data_xmax_log &&
+        xmax_log >= data_xmin_log && xmax_log <= data_xmax_log) {
 
       # Calculate probabilities using interpolation of mean CDF - exactly as in the app
       y_min <- approx(x_values_log, y_mean, xout = xmin_log)$y

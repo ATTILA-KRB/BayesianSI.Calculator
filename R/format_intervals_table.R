@@ -60,7 +60,7 @@ format_intervals_table <- function(result, show_reducible = FALSE) {
           shiny::tags$th(rowspan = 2, if (is_single_chain) "" else header_names[1]),
           shiny::tags$th(rowspan = 2, header_names[2]),
           do.call(
-            tagList,
+            shiny::tagList,
             mapply(
               function(name, colspan) shiny::tags$th(colspan = colspan, name),
               header_names[-c(1, 2)],
@@ -104,7 +104,7 @@ format_intervals_table <- function(result, show_reducible = FALSE) {
           shiny::tags$th(rowspan = 2, if (is_single_chain) "" else header_names[1]),
           shiny::tags$th(rowspan = 2, header_names[2]),
           do.call(
-            tagList,
+            shiny::tagList,
             mapply(
               function(name, colspan) shiny::tags$th(colspan = colspan, name),
               header_names[-c(1, 2)],
