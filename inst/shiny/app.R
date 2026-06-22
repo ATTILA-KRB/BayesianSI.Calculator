@@ -741,16 +741,11 @@ server <- function(input, output, session) {
           ungroup()
       }
 
-      # Add the calculation for Reducible Uncertainty
-      # Guard against a zero-width interval (TI bound == Median) -> NA instead of Inf/NaN
-      denom_upper <- combined_result$TI_Upper - combined_result$Median
-      denom_lower <- combined_result$TI_Lower - combined_result$Median
-      combined_result$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_, (combined_result$TI_Upper - combined_result$PI_Upper)/denom_upper)
-      combined_result$ReducibleLower <- ifelse(denom_lower == 0, NA_real_, (combined_result$TI_Lower - combined_result$PI_Lower)/denom_lower)
-
+      # Add the calculation for Reducible Uncertainty (delegates to the package
+      # helper, which guards against a zero-width interval -> NA instead of Inf/NaN)
       # Convert to percentages
-      combined_result$ReducibleUpper <- round(combined_result$ReducibleUpper * 100, 3)
-      combined_result$ReducibleLower <- round(combined_result$ReducibleLower * 100, 3)
+      combined_result$ReducibleUpper <- round(reducible_fraction(combined_result$TI_Upper, combined_result$PI_Upper, combined_result$Median) * 100, 3)
+      combined_result$ReducibleLower <- round(reducible_fraction(combined_result$TI_Lower, combined_result$PI_Lower, combined_result$Median) * 100, 3)
 
       # Store the combined result
       IntervalsOutputInitial(combined_result)
@@ -821,13 +816,12 @@ server <- function(input, output, session) {
         mutate(across(c(Median, CI_Lower, CI_Upper, TI_Lower, TI_Upper, PI_Lower, PI_Upper), exp))
     }
 
-    # Add the calculation for Reducible Uncertainty
+    # Add the calculation for Reducible Uncertainty (delegates to the package
+    # helper, which guards against a zero-width interval -> NA instead of Inf/NaN)
     print("Calculating reducible imprecision values") # Debug print
 
-    denom_upper <- data$TI_Upper - data$Median
-    denom_lower <- data$TI_Lower - data$Median
-    data$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_, (data$TI_Upper - data$PI_Upper)/denom_upper)
-    data$ReducibleLower <- ifelse(denom_lower == 0, NA_real_, (data$TI_Lower - data$PI_Lower)/denom_lower)
+    data$ReducibleUpper <- reducible_fraction(data$TI_Upper, data$PI_Upper, data$Median)
+    data$ReducibleLower <- reducible_fraction(data$TI_Lower, data$PI_Lower, data$Median)
 
     # Print some sample values
     print("Sample reducible imprecision values:")
