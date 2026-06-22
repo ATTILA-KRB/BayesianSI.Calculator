@@ -32,7 +32,11 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          # shinytest2 drives the bundled Shiny app in a headless Chrome,
+          # which is pre-installed on the GitHub-hosted runners.
+          extra-packages: |
+            any::rcmdcheck
+            any::shinytest2
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
