@@ -732,149 +732,6 @@ server <- function(input, output, session) {
     return(results)
   }
 
-  calculate_predicted_distributions <- function() {
-    req(InputData(), input$fixed_var, input$random_var, input$by, input$tolerance_level)
-    print("Starting predictedDistributions calculation")
-
-    FixedEffects <- input$fixed_var
-    RandomParams <- input$random_var
-
-    # Check if "Single Chain Dataset" is selected
-    is_single_chain <- identical(input$by, "Single Chain Dataset")
-    By <- if(is_single_chain) "SingleChain" else input$by
-    ToleranceLevel <- input$tolerance_level
-
-    # If "Single Chain Dataset" is selected, create a SingleChain column if it doesn't exist
-    if(By == "SingleChain" && !"SingleChain" %in% names(InputData())) {
-      temp_data <- InputData()
-      temp_data$SingleChain <- 1
-      InputData(temp_data)
-    }
-
-    # Create a copy of the data to avoid modifying the original
-    dt <- copy(as.data.table(InputData()))
-
-    # Print column types for debugging
-    print("Column types before processing:")
-    for(col in c(FixedEffects, RandomParams)) {
-      print(paste(col, ":", class(dt[[col]]), "- Sample values:", paste(head(dt[[col]], 3), collapse=", ")))
-    }
-
-    # Initialize mean vector with zeros
-    mean_vector <- rep(0, nrow(dt))
-
-    # First, add covariate effects to mean
-    for(i in 1:3) {
-      covariate_col <- input[[paste0("covariate_", i)]]
-      covariate_val <- input[[paste0("covariate_value_", i)]]
-
-      # Only process if a covariate column is selected
-      if(!is.null(covariate_col) && covariate_col != "None" && covariate_col %in% names(dt)) {
-        # Get the column values
-        col_vector <- as.numeric(dt[[covariate_col]])
-
-        # Use covariate value (defaults to 1 if NULL or NA)
-        multiplier <- if(is.null(covariate_val) || is.na(covariate_val)) 1 else covariate_val
-
-        # Add covariate effect to mean
-        mean_vector <- mean_vector + (col_vector * multiplier)
-
-        print(paste("Added Covariate", i, "effect:", covariate_col, "*", multiplier))
-        print(paste("Sample values after adding covariate", i, ":",
-                    paste(head(mean_vector, 3), collapse=", ")))
-      }
-    }
-
-    # Then add fixed effects
-    if(length(FixedEffects) > 0) {
-      fixed_matrix <- matrix(
-        as.numeric(unlist(dt[, ..FixedEffects])),
-        nrow = nrow(dt),
-        ncol = length(FixedEffects)
-      )
-
-      # Add fixed effects to mean
-      mean_vector <- mean_vector + rowSums(fixed_matrix, na.rm = TRUE)
-
-      print("Added fixed effects")
-      print(paste("Sample values after adding fixed effects:",
-                  paste(head(mean_vector, 3), collapse=", ")))
-    }
-
-    # Calculate variance
-    if(length(RandomParams) > 0) {
-      random_matrix <- matrix(
-        as.numeric(unlist(dt[, ..RandomParams])),
-        nrow = nrow(dt),
-        ncol = length(RandomParams)
-      )
-
-      # Calculate total variance
-      variance_vector <- rowSums(random_matrix, na.rm = TRUE) * MultiplicationFactorVariances()
-    } else {
-      variance_vector <- rep(0, nrow(dt))
-    }
-
-    # Print matrix types for debugging
-    print("Final dimensions and values:")
-    print(paste("Number of rows:", length(mean_vector)))
-    print(paste("Mean vector sample:", paste(head(mean_vector, 3), collapse=", ")))
-    print(paste("Variance vector sample:", paste(head(variance_vector, 3), collapse=", ")))
-
-    # Calculate tolerance parameters
-    toleranceaplha <- ToleranceLevel / 100
-    toleranceslice <- (1 - toleranceaplha) / 2
-
-    # Calculate quantiles using the mean and variance
-    lower_quantiles <- qnorm(toleranceslice, mean = mean_vector, sd = sqrt(pmax(variance_vector, 1e-10)))
-    upper_quantiles <- qnorm(toleranceaplha + toleranceslice, mean = mean_vector, sd = sqrt(pmax(variance_vector, 1e-10)))
-    medians <- qnorm(0.5, mean = mean_vector, sd = sqrt(pmax(variance_vector, 1e-10)))
-
-    # Create result data.table
-    PredictedDistributions_dt <- data.table(
-      By = dt[[By]],
-      mean = mean_vector,
-      median = medians,
-      lower_quantile = lower_quantiles,
-      upper_quantile = upper_quantiles,
-      variance = variance_vector
-    )
-
-    # Handle infinite values and round
-    PredictedDistributions_dt$mean <- sapply(PredictedDistributions_dt$mean, function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
-
-    PredictedDistributions_dt$median <- sapply(PredictedDistributions_dt$median, function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
-
-    PredictedDistributions_dt$lower_quantile <- sapply(PredictedDistributions_dt$lower_quantile, function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
-
-    PredictedDistributions_dt$upper_quantile <- sapply(PredictedDistributions_dt$upper_quantile, function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
-
-    PredictedDistributions_dt$variance <- sapply(PredictedDistributions_dt$variance, function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
-
-    # Sort by the "By" column
-    setorder(PredictedDistributions_dt, By)
-
-    print("Finished predictedDistributions calculation")
-    print(head(PredictedDistributions_dt))
-
-    return(as.data.frame(PredictedDistributions_dt))
-  }
-
   create_distribution_plots <- function(d, id) {
     add_interval_lines <- function(p, d) {
       p %>%
@@ -907,7 +764,37 @@ server <- function(input, output, session) {
       # Calculate predictedDistributions
       print("Calculating Predicted Distributions")
       incProgress(0.2)
-      pred_dist <- calculate_predicted_distributions()
+      req(InputData(), input$fixed_var, input$random_var, input$by, input$tolerance_level)
+
+      # Assemble covariate columns/values from the three covariate slots,
+      # skipping unselected ("None"/NULL) entries and defaulting NA values to 1
+      # (mirrors the previous local closure behaviour).
+      covariate_cols <- character(0)
+      covariate_values <- numeric(0)
+      for (i in 1:3) {
+        cov_col <- input[[paste0("covariate_", i)]]
+        cov_val <- input[[paste0("covariate_value_", i)]]
+        if (!is.null(cov_col) && cov_col != "None" && cov_col %in% names(InputData())) {
+          covariate_cols <- c(covariate_cols, cov_col)
+          covariate_values <- c(covariate_values,
+                                if (is.null(cov_val) || is.na(cov_val)) 1 else cov_val)
+        }
+      }
+      if (length(covariate_cols) == 0) {
+        covariate_cols <- NULL
+        covariate_values <- NULL
+      }
+
+      pred_dist <- calculate_predicted_distributions(
+        data = InputData(),
+        fixed_effects = input$fixed_var,
+        random_params = input$random_var,
+        by = input$by,
+        tolerance_level = input$tolerance_level,
+        multiplication_factor = MultiplicationFactorVariances(),
+        covariate_cols = covariate_cols,
+        covariate_values = covariate_values
+      )
       predictedDistributions(pred_dist)
       print(paste("Predicted Distributions:", nrow(pred_dist), "rows"))
 
