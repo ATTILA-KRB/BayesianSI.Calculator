@@ -4,12 +4,46 @@
 \alias{format_intervals_table}
 \title{Format Intervals Table with Double Header}
 \usage{
-format_intervals_table(result, show_reducible = FALSE)
+format_intervals_table(
+  result,
+  show_reducible = FALSE,
+  ci_percent = NULL,
+  pi_percent = NULL,
+  ti_percent = NULL,
+  conf_percent = NULL,
+  is_one_sided = NULL,
+  by_label = "By Identifier",
+  include_pi = NULL
+)
 }
 \arguments{
 \item{result}{Output list from perform_calculations() containing data and summary}
 
 \item{show_reducible}{Logical, whether to include reducible uncertainty columns (default = FALSE)}
+
+\item{ci_percent}{Optional CI percentage. When \code{NULL} the value is parsed
+from \code{result$summary}.}
+
+\item{pi_percent}{Optional PI percentage. When \code{NULL} the value is parsed
+from \code{result$summary}.}
+
+\item{ti_percent}{Optional TI percentage. When \code{NULL} the value is parsed
+from \code{result$summary}.}
+
+\item{conf_percent}{Optional TI credibility/confidence percentage. When
+\code{NULL} the value is parsed from \code{result$summary}.}
+
+\item{is_one_sided}{Optional logical controlling header sidedness labels.
+\code{NULL} (default) adds no prefix; \code{TRUE} adds "One-Sided ";
+\code{FALSE} adds "Two-Sided ". When \code{FALSE} and \code{include_pi} is
+not explicitly set, the prediction-interval (PI) columns are dropped.}
+
+\item{by_label}{Character label for the grouping ("By") column header
+(default = "By Identifier").}
+
+\item{include_pi}{Optional logical controlling whether the PI columns are
+shown. When \code{NULL} it is derived: explicit two-sided
+(\code{is_one_sided == FALSE}) drops PI, otherwise PI is included.}
 }
 \value{
 A DT::datatable object with formatted headers showing interval percentages

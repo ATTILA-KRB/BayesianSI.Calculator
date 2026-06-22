@@ -924,176 +924,35 @@ server <- function(input, output, session) {
       display_data$By <- "" # Empty the By column for display purposes
     }
 
-    # Define columns and headers based on whether it's one-sided or two-sided
-    if(is_one_sided) {
-      # ONE-SIDED TABLE (keep all columns including PI)
-      if(input$show_reducible){
-        display_columns <- c("By", "Median", "CI_Lower", "CI_Upper", "PI_Lower", "PI_Upper", "TI_Lower", "TI_Upper", "ReducibleLower", "ReducibleUpper")
-
-        # Check if all columns exist
-        missing_cols <- setdiff(display_columns, names(ci_data))
-        if(length(missing_cols) > 0) {
-          print(paste("Missing columns:", paste(missing_cols, collapse=", ")))
-          return(datatable(data.frame(Message = paste("Missing columns in data:", paste(missing_cols, collapse=", "))),
-                           options = list(dom = 't'),
-                           style = 'bootstrap4'))
-        }
-
-        column_names <- if (is_single_chain) {
-          c("", "Median", "CI Lower", "CI Upper", "PI Lower", "PI Upper", "TI Lower", "TI Upper", "Reducible Lower", "Reducible Upper")
-        } else {
-          c(by_column_name, "Median", "CI Lower", "CI Upper", "PI Lower", "PI Upper", "TI Lower", "TI Upper", "Reducible Lower", "Reducible Upper")
-        }
-
-        header_names <- c(
-          "By Identifier",
-          "Point Estimate",
-          sprintf("One-Sided %s%% CI", ci_percent),
-          sprintf("One-Sided %s%% PI", pi_percent),
-          sprintf("One-Sided %s%% TI (%s%% Credibility)", ti_percent, ti_confidence),
-          "Reducible Imprecision (%)"
-        )
-
-        header_colspans <- c(1, 1, 2, 2, 2, 2)
-
-        container <- tags$table(
-          class = 'display',
-          tags$thead(
-            tags$tr(
-              tags$th(rowspan = 2, if (is_single_chain) "" else by_column_name),
-              tags$th(rowspan = 2, "Point Estimate"),
-              do.call(
-                tagList,
-                mapply(function(name, colspan) tags$th(colspan = colspan, name),
-                       header_names[-c(1, 2)], header_colspans[-c(1, 2)], SIMPLIFY = FALSE)
-              )
-            ),
-            tags$tr(
-              tags$th("Lower"), tags$th("Upper"), # CI
-              tags$th("Lower"), tags$th("Upper"), # PI
-              tags$th("Lower"), tags$th("Upper"), # TI
-              tags$th("Lower"), tags$th("Upper")  # Reducible
-            )
-          )
-        )
-      } else {
-        display_columns <- c("By", "Median", "CI_Lower", "CI_Upper", "PI_Lower", "PI_Upper", "TI_Lower", "TI_Upper")
-
-        # Check if all columns exist
-        missing_cols <- setdiff(display_columns, names(ci_data))
-        if(length(missing_cols) > 0) {
-          print(paste("Missing columns:", paste(missing_cols, collapse=", ")))
-          return(datatable(data.frame(Message = paste("Missing columns in data:", paste(missing_cols, collapse=", "))),
-                           options = list(dom = 't'),
-                           style = 'bootstrap4'))
-        }
-
-        column_names <- if (is_single_chain) {
-          c("", "Median", "CI Lower", "CI Upper", "PI Lower", "PI Upper", "TI Lower", "TI Upper")
-        } else {
-          c(by_column_name, "Median", "CI Lower", "CI Upper", "PI Lower", "PI Upper", "TI Lower", "TI Upper")
-        }
-
-        header_names <- c(
-          "By Identifier",
-          "Point Estimate",
-          sprintf("One-Sided %s%% CI", ci_percent),
-          sprintf("One-Sided %s%% PI", pi_percent),
-          sprintf("One-Sided %s%% TI (%s%% Credibility)", ti_percent, ti_confidence)
-        )
-
-        header_colspans <- c(1, 1, 2, 2, 2)
-
-        container <- tags$table(
-          class = 'display',
-          tags$thead(
-            tags$tr(
-              tags$th(rowspan = 2, if (is_single_chain) "" else by_column_name),
-              tags$th(rowspan = 2, "Point Estimate"),
-              do.call(
-                tagList,
-                mapply(function(name, colspan) tags$th(colspan = colspan, name),
-                       header_names[-c(1, 2)], header_colspans[-c(1, 2)], SIMPLIFY = FALSE)
-              )
-            ),
-            tags$tr(
-              tags$th("Lower"), tags$th("Upper"), # CI
-              tags$th("Lower"), tags$th("Upper"), # PI
-              tags$th("Lower"), tags$th("Upper")  # TI
-            )
-          )
-        )
-      }
+    # Guard: ensure the required columns exist before delegating to the package
+    # formatter. Two-sided drops the PI columns, so they are not required there.
+    required_columns <- if (is_one_sided) {
+      c("By", "Median", "CI_Lower", "CI_Upper", "PI_Lower", "PI_Upper", "TI_Lower", "TI_Upper")
     } else {
-      # TWO-SIDED TABLE (exclude PI columns)
-      display_columns <- c("By", "Median", "CI_Lower", "CI_Upper", "TI_Lower", "TI_Upper")
-
-      # Check if all columns exist
-      missing_cols <- setdiff(display_columns, names(ci_data))
-      if(length(missing_cols) > 0) {
-        print(paste("Missing columns:", paste(missing_cols, collapse=", ")))
-        return(datatable(data.frame(Message = paste("Missing columns in data:", paste(missing_cols, collapse=", "))),
-                         options = list(dom = 't'),
-                         style = 'bootstrap4'))
-      }
-
-      column_names <- if (is_single_chain) {
-        c("", "Median", "CI Lower", "CI Upper", "TI Lower", "TI Upper")
-      } else {
-        c(by_column_name, "Median", "CI Lower", "CI Upper", "TI Lower", "TI Upper")
-      }
-
-      header_names <- c(
-        "By Identifier",
-        "Point Estimate",
-        sprintf("Two-Sided %s%% CI", ci_percent),
-        sprintf("Two-Sided %s%% TI (%s%% Credibility)", ti_percent, ti_confidence)
-      )
-
-      header_colspans <- c(1, 1, 2, 2)
-
-      container <- tags$table(
-        class = 'display',
-        tags$thead(
-          tags$tr(
-            tags$th(rowspan = 2, if (is_single_chain) "" else by_column_name),
-            tags$th(rowspan = 2, "Point Estimate"),
-            do.call(
-              tagList,
-              mapply(function(name, colspan) tags$th(colspan = colspan, name),
-                     header_names[-c(1, 2)], header_colspans[-c(1, 2)], SIMPLIFY = FALSE)
-            )
-          ),
-          tags$tr(
-            tags$th("Lower"), tags$th("Upper"), # CI
-            tags$th("Lower"), tags$th("Upper")  # TI
-          )
-        )
-      )
+      c("By", "Median", "CI_Lower", "CI_Upper", "TI_Lower", "TI_Upper")
+    }
+    if (input$show_reducible) {
+      required_columns <- c(required_columns, "ReducibleLower", "ReducibleUpper")
+    }
+    missing_cols <- setdiff(required_columns, names(display_data))
+    if (length(missing_cols) > 0) {
+      print(paste("Missing columns:", paste(missing_cols, collapse = ", ")))
+      return(datatable(data.frame(Message = paste("Missing columns in data:", paste(missing_cols, collapse = ", "))),
+                       options = list(dom = 't'),
+                       style = 'bootstrap4'))
     }
 
-    # Add CSS for padding directly to the output options
-    datatable(display_data[, display_columns],
-              options = list(
-                pageLength = 50,
-                dom = 't',
-                scrollX = TRUE,
-                scrollY = "400px",
-                fixedHeader = TRUE,
-                scrollCollapse = TRUE,
-                paging = FALSE,
-                ordering = TRUE,
-                order = list(),
-                columnDefs = list(
-                  list(className = 'dt-center', targets = '_all'),
-                  list(className = 'dt-left', targets = 0)
-                )
-              ),
-              style = 'bootstrap4',
-              container = container,
-              rownames = FALSE
-    ) %>%
-      formatRound(columns = setdiff(display_columns, "By"), digits = 4)
+    # Delegate table construction to the package formatter.
+    format_intervals_table(
+      result = list(data = display_data),
+      show_reducible = input$show_reducible,
+      ci_percent = ci_percent,
+      pi_percent = pi_percent,
+      ti_percent = ti_percent,
+      conf_percent = ti_confidence,
+      is_one_sided = is_one_sided,
+      by_label = by_column_name
+    )
   }
 
   render_intervals_plot <- function(data, input) {
