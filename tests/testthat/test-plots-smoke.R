@@ -30,6 +30,19 @@ test_that("plot_one_sided_intervals returns upper and lower plotly objects", {
   expect_s3_class(p$lower, "plotly")
 })
 
+test_that("plot_intervals accepts x_axis_title and is_single_chain overrides", {
+  p <- plot_intervals(result, x_axis_title = "Custom", is_single_chain = TRUE)
+  expect_s3_class(p, "plotly")
+})
+
+test_that("plot_one_sided_intervals accepts x_axis_title and is_single_chain overrides", {
+  p <- plot_one_sided_intervals(result$data, x_axis_title = "X", is_single_chain = TRUE)
+  expect_type(p, "list")
+  expect_named(p, c("upper", "lower"))
+  expect_s3_class(p$upper, "plotly")
+  expect_s3_class(p$lower, "plotly")
+})
+
 test_that("plot_posterior_predictive returns a plotly object", {
   expect_s3_class(plot_posterior_predictive(cdf_data), "plotly")
   expect_s3_class(plot_posterior_predictive(cdf_data, x_value = "10"), "plotly")

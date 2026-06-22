@@ -8,7 +8,8 @@ plot_intervals(
   result,
   show_reducible = FALSE,
   x_axis_title = NULL,
-  show_summary = FALSE
+  show_summary = FALSE,
+  is_single_chain = NULL
 )
 }
 \arguments{
@@ -19,6 +20,9 @@ plot_intervals(
 \item{x_axis_title}{Character, custom title for x-axis (optional)}
 
 \item{show_summary}{Logical, whether to print the summary in the console (default = FALSE)}
+
+\item{is_single_chain}{Logical, whether to force single-chain styling. If NULL
+(default), this is inferred from the data via an internal heuristic.}
 }
 \value{
 A plotly object displaying the statistical intervals

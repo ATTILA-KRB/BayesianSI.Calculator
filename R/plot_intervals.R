@@ -10,6 +10,8 @@
 #' @param show_reducible Logical, whether to show reducible uncertainty ribbons (default = FALSE)
 #' @param x_axis_title Character, custom title for x-axis (optional)
 #' @param show_summary Logical, whether to print the summary in the console (default = FALSE)
+#' @param is_single_chain Logical, whether to force single-chain styling. If NULL
+#'   (default), this is inferred from the data via an internal heuristic.
 #'
 #' @return A plotly object displaying the statistical intervals
 #'
@@ -33,7 +35,7 @@
 #'
 #' @export
 plot_intervals <- function(result, show_reducible = FALSE, x_axis_title = NULL,
-                           show_summary = FALSE) {
+                           show_summary = FALSE, is_single_chain = NULL) {
   # Extract data and summary from result
   if (is.list(result) && "data" %in% names(result) && "summary" %in% names(result)) {
     data <- result$data
@@ -80,8 +82,10 @@ plot_intervals <- function(result, show_reducible = FALSE, x_axis_title = NULL,
   n_by <- length(unique(data$By))
 
   # Determine if this is a single chain situation
-  is_single_chain <- n_by == 1 && (as.character(data$By[1]) == "1" ||
-                                     as.character(data$By[1]) == "SingleChain")
+  if (is.null(is_single_chain)) {
+    is_single_chain <- n_by == 1 && (as.character(data$By[1]) == "1" ||
+                                       as.character(data$By[1]) == "SingleChain")
+  }
 
   # Set x-axis title
   if (is.null(x_axis_title)) {

@@ -8,6 +8,10 @@
 #' @param show_reducible Logical, whether to show reducible uncertainty ribbons (default = FALSE)
 #' @param log_normal Logical, whether values are in log-normal scale (default = FALSE)
 #' @param selected_by_values Optional vector of specific by values to include in the plot
+#' @param x_axis_title Character, custom title for x-axis. If NULL (default), the
+#'   title is inferred from whether the data represents a single chain.
+#' @param is_single_chain Logical, whether to force single-chain styling. If NULL
+#'   (default), this is inferred from the data via an internal heuristic.
 #'
 #' @return A list containing two plotly objects:
 #' \itemize{
@@ -36,7 +40,8 @@
 #' @importFrom plotly plot_ly add_trace add_ribbons layout
 #' @export
 plot_one_sided_intervals <- function(data, show_reducible = FALSE,
-                                     log_normal = FALSE, selected_by_values = NULL) {
+                                     log_normal = FALSE, selected_by_values = NULL,
+                                     x_axis_title = NULL, is_single_chain = NULL) {
   # Input validation
   required_cols <- c("By", "Median", "CI_Lower", "CI_Upper",
                      "TI_Lower", "TI_Upper", "PI_Lower", "PI_Upper")
@@ -57,14 +62,18 @@ plot_one_sided_intervals <- function(data, show_reducible = FALSE,
   n_by <- length(unique(data$By))
 
   # Check if this is a single chain situation
-  is_single_chain <- n_by == 1 && (as.character(data$By[1]) == "1" ||
-                                     as.character(data$By[1]) == "SingleChain")
+  if (is.null(is_single_chain)) {
+    is_single_chain <- n_by == 1 && (as.character(data$By[1]) == "1" ||
+                                       as.character(data$By[1]) == "SingleChain")
+  }
 
-  # Determine x-axis title
-  x_axis_title <- if (is_single_chain) {
-    "By Identifier"
-  } else {
-    "By"
+  # Determine x-axis title (use supplied value if provided)
+  if (is.null(x_axis_title)) {
+    x_axis_title <- if (is_single_chain) {
+      "By Identifier"
+    } else {
+      "By"
+    }
   }
 
   # Calculate plot range for extending to infinity
