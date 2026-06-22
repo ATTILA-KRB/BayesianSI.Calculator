@@ -279,13 +279,12 @@ calculate_predicted_distributions <- function(data, fixed_effects, random_params
     variance = variance_vector
   )
 
-  # Handle infinite values and round
+  # Round numeric columns. round() is vectorised and preserves Inf/-Inf as
+  # numeric, so the columns stay numeric (the previous per-element sapply
+  # turned the whole column into character as soon as one value was infinite).
   cols_to_process <- c("mean", "median", "lower_quantile", "upper_quantile", "variance")
-  for(col in cols_to_process) {
-    PredictedDistributions_dt[[col]] <- sapply(PredictedDistributions_dt[[col]], function(x) {
-      if(is.infinite(x)) return(ifelse(x > 0, "+Inf", "-Inf"))
-      return(round(x, 3))
-    })
+  for (col in cols_to_process) {
+    PredictedDistributions_dt[[col]] <- round(PredictedDistributions_dt[[col]], 3)
   }
 
   # Sort by the "By" column

@@ -89,7 +89,8 @@ plot_one_sided_intervals <- function(data, show_reducible = FALSE,
 
   # Add traces for each By value
   for (i in 1:nrow(data)) {
-    by_val <- as.numeric(data$By[i])
+    by_val <- suppressWarnings(as.numeric(data$By[i]))
+    if (is.na(by_val)) by_val <- i  # fall back to row index for non-numeric By
     by_label <- as.character(data$By[i])
 
     # Add reducible uncertainty ribbons if enabled
