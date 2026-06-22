@@ -4,3 +4,4 @@
 ^\.github$
 ^.*\.Rcheck$
 ^.*\.tar\.gz$
+^CLAUDE\.md$
