@@ -41,14 +41,8 @@ lognorm_adjuster <- function(IntervalsOutputInitial, log_normal) {
   }
 
   # Add the calculation for Reducible Uncertainty
-  # Guard against a zero-width interval (TI bound == Median) which would
-  # otherwise produce a silent Inf/NaN; return NA in that degenerate case.
-  denom_upper <- data$TI_Upper - data$Median
-  denom_lower <- data$TI_Lower - data$Median
-  data$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_,
-                                (data$TI_Upper - data$PI_Upper) / denom_upper)
-  data$ReducibleLower <- ifelse(denom_lower == 0, NA_real_,
-                                (data$TI_Lower - data$PI_Lower) / denom_lower)
+  data$ReducibleUpper <- reducible_fraction(data$TI_Upper, data$PI_Upper, data$Median)
+  data$ReducibleLower <- reducible_fraction(data$TI_Lower, data$PI_Lower, data$Median)
 
   # Convert to percentages
   data$ReducibleUpper <- round(data$ReducibleUpper * 100, 3)

@@ -154,14 +154,8 @@ bayesian_statistical_intervals <- function(data,
   }
 
   # Add reducible uncertainty calculations
-  # Guard against a zero-width interval (TI bound == Median) which would
-  # otherwise produce a silent Inf/NaN; return NA in that degenerate case.
-  denom_upper <- combined_result$TI_Upper - combined_result$Median
-  denom_lower <- combined_result$TI_Lower - combined_result$Median
-  combined_result$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_,
-                                            (combined_result$TI_Upper - combined_result$PI_Upper) / denom_upper)
-  combined_result$ReducibleLower <- ifelse(denom_lower == 0, NA_real_,
-                                            (combined_result$TI_Lower - combined_result$PI_Lower) / denom_lower)
+  combined_result$ReducibleUpper <- reducible_fraction(combined_result$TI_Upper, combined_result$PI_Upper, combined_result$Median)
+  combined_result$ReducibleLower <- reducible_fraction(combined_result$TI_Lower, combined_result$PI_Lower, combined_result$Median)
 
   # Round to 5 decimal places
   combined_result$ReducibleUpper <- round(combined_result$ReducibleUpper, 5)
@@ -212,13 +206,9 @@ bayesian_statistical_intervals <- function(data,
       })
     }
 
-    # Recalculate reducible uncertainty after transformation (guard zero-width interval)
-    denom_upper <- combined_result$TI_Upper - combined_result$Median
-    denom_lower <- combined_result$TI_Lower - combined_result$Median
-    combined_result$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_,
-                                              (combined_result$TI_Upper - combined_result$PI_Upper) / denom_upper)
-    combined_result$ReducibleLower <- ifelse(denom_lower == 0, NA_real_,
-                                              (combined_result$TI_Lower - combined_result$PI_Lower) / denom_lower)
+    # Recalculate reducible uncertainty after transformation
+    combined_result$ReducibleUpper <- reducible_fraction(combined_result$TI_Upper, combined_result$PI_Upper, combined_result$Median)
+    combined_result$ReducibleLower <- reducible_fraction(combined_result$TI_Lower, combined_result$PI_Lower, combined_result$Median)
     combined_result$ReducibleUpper <- round(combined_result$ReducibleUpper, 5)
     combined_result$ReducibleLower <- round(combined_result$ReducibleLower, 5)
   }
