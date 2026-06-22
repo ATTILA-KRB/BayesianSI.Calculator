@@ -32,8 +32,9 @@ library(ggplot2)
 library(grid)
 library(plotly)
 
-# Interval calculations come from the package itself, so the app and the
-# package share a single, unit-tested implementation.
+# The app reuses the package's own exported, unit-tested helpers (interval
+# calculations, input parsing, ...) instead of carrying its own copies, so the
+# app and the package share a single implementation.
 library(BayesianStatisticalIntervalsCalculator)
 
 # Computes confidence ellipse coordinates from covariance and center without external dependencies.
@@ -1122,45 +1123,6 @@ server <- function(input, output, session) {
       return(list(selected = new_column_name, choices = c("Single Chain Dataset", names(data)), original_columns = by))
     } else {
       return(list(selected = by[1], choices = c("Single Chain Dataset", names(InputData())), original_columns = NULL))
-    }
-  }
-
-  parse_x_value_input <- function(input_text) {
-    # Check if input is null or NA
-    if (is.null(input_text) || is.na(input_text)) {
-      return(NULL)
-    }
-
-    # Check if input matches range pattern [value1,value2]
-    # This regex handles spaces around the comma and values
-    range_pattern <- "^\\s*\\[\\s*(-?\\d*\\.?\\d+)\\s*,\\s*(-?\\d*\\.?\\d+)\\s*\\]\\s*$"
-
-    if (grepl(range_pattern, input_text)) {
-      # Extract the two values from the range notation
-      matches <- regmatches(input_text, regexec(range_pattern, input_text))[[1]]
-      xmin <- as.numeric(matches[2])
-      xmax <- as.numeric(matches[3])
-
-      # Ensure xmin is less than xmax
-      if (xmin > xmax) {
-        temp <- xmin
-        xmin <- xmax
-        xmax <- temp
-      }
-
-      return(list(type = "range", xmin = xmin, xmax = xmax))
-    } else {
-      # Try to parse as a single numeric value
-      tryCatch({
-        value <- as.numeric(input_text)
-        if (!is.na(value)) {
-          return(list(type = "single", value = value))
-        } else {
-          return(NULL)
-        }
-      }, error = function(e) {
-        return(NULL)
-      })
     }
   }
 
