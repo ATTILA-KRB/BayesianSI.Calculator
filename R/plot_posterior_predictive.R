@@ -4,7 +4,7 @@
 #' Its only a legacy function to keep compatibility with the older versions.
 #'
 #' @param cdf_data A dataframe from create_cdf_dataframe() containing CDF information, or a list of such dataframes
-#' @param x_value Optional. Single numeric value or range [min,max] as character string (e.g., "[2,5]")
+#' @param x_value Optional. Single numeric value or range `[min,max]` as character string (e.g., `[2,5]`)
 #' @param title Optional. Custom plot title. If NULL, auto-generates based on by-value
 #' @param show_ci Logical. Whether to show confidence interval ribbon (default = TRUE)
 #' @param line_colors List of colors for different elements (optional)
@@ -80,7 +80,7 @@ plot_posterior_predictive <- function(cdf_data, x_value = NULL, title = NULL,
       line = list(color = line_colors$main, width = 2),
       hoverinfo = 'text',
       text = ~sprintf(
-        "x: %.4f<br>P(X ≤ x): %.4f",
+        "x: %.4f<br>P(X \u2264 x): %.4f",
         x, y_mean
       )
     )
@@ -143,7 +143,7 @@ plot_posterior_predictive <- function(cdf_data, x_value = NULL, title = NULL,
               marker = list(color = line_colors$reference, size = 8),
               name = "Selected X Value",
               text = sprintf(
-                "x: %.4f<br>P(X ≤ x): %.4f<br>CI: [%.4f, %.4f]",
+                "x: %.4f<br>P(X \u2264 x): %.4f<br>CI: [%.4f, %.4f]",
                 x_val, y_val, ci_lower, ci_upper
               ),
               hoverinfo = 'text'
@@ -192,8 +192,8 @@ plot_posterior_predictive <- function(cdf_data, x_value = NULL, title = NULL,
               marker = list(color = line_colors$reference, size = 8),
               name = "Range Bounds",
               text = c(
-                sprintf("xmin: %.4f<br>P(X ≤ xmin): %.4f", xmin, y_min),
-                sprintf("xmax: %.4f<br>P(X ≤ xmax): %.4f", xmax, y_max)
+                sprintf("xmin: %.4f<br>P(X \u2264 xmin): %.4f", xmin, y_min),
+                sprintf("xmax: %.4f<br>P(X \u2264 xmax): %.4f", xmax, y_max)
               ),
               hoverinfo = 'text'
             )

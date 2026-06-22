@@ -26,7 +26,6 @@ library(dplyr)
 #for reading in large files
 library(readr)
 library(data.table)
-library(utf8)
 
 #for plotting needs
 library(ggplot2)

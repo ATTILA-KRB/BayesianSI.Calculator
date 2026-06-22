@@ -15,9 +15,7 @@ Imports:
     dplyr,
     readr,
     data.table,
-    utf8,
     ggplot2,
-    grid,
     plotly,
     stats
 Depends:
