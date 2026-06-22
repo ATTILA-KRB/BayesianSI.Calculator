@@ -44,6 +44,42 @@ test_that("perform_calculations returns one row per group", {
   expect_setequal(res$data$By, c("A", "B"))
 })
 
+test_that("perform_calculations forwards covariates and returns predicted distributions", {
+  d <- make_mcmc_data()
+  set.seed(7)
+  d$cov1 <- runif(nrow(d), 0.5, 2)
+
+  res <- perform_calculations(d, "t1", "v1", by = "By", tolerance_level = 90,
+                              covariate_cols = "cov1", covariate_values = 1.5)
+
+  # The raw predicted distributions are now returned (additive field)
+  expect_true("predicted_distributions" %in% names(res))
+  expect_false(is.null(res$predicted_distributions))
+  expect_true(is.data.frame(res$predicted_distributions))
+
+  # Result table is well-formed with reducible-uncertainty columns
+  expect_true(all(interval_cols %in% names(res$data)))
+  expect_true(all(c("ReducibleUpper", "ReducibleLower") %in% names(res$data)))
+
+  # Equivalent to running the predicted-distributions + interval pipeline manually
+  manual_pred <- calculate_predicted_distributions(
+    data = d, fixed_effects = "t1", random_params = "v1", by = "By",
+    tolerance_level = 90, multiplication_factor = 1,
+    covariate_cols = "cov1", covariate_values = 1.5
+  )
+  expect_equal(res$predicted_distributions, manual_pred)
+
+  ci_result <- calculate_ci(manual_pred, "median", 95, "By")
+  ti_result <- calculate_tolerance_interval(manual_pred, "lower_quantile",
+                                            "upper_quantile", 95, "By")
+  pi_result <- calculate_PI(data = manual_pred, percent_for_pi = 95, Eta = 0.001)
+  manual <- merge(merge(ci_result, ti_result, by = "By"), pi_result, by = "By")
+  manual$ReducibleUpper <- round(reducible_fraction(manual$TI_Upper, manual$PI_Upper, manual$Median) * 100, 3)
+  manual$ReducibleLower <- round(reducible_fraction(manual$TI_Lower, manual$PI_Lower, manual$Median) * 100, 3)
+
+  expect_equal(as.data.frame(res$data), as.data.frame(manual))
+})
+
 test_that("perform_calculations rejects non-data-frame input", {
   expect_error(perform_calculations(list(t1 = 1), "t1", "v1", by = "By", tolerance_level = 90))
 })

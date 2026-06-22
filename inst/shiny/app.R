@@ -666,86 +666,32 @@ server <- function(input, output, session) {
         covariate_values <- NULL
       }
 
-      pred_dist <- calculate_predicted_distributions(
+      # Run the core numeric pipeline via the package function so it stays in
+      # sync with `perform_calculations()` (predicted distributions -> CI -> TI
+      # -> PI -> merge -> per-`By` dedup -> reducible uncertainty). log_normal is
+      # FALSE here because the app applies its own UI-driven lognorm_adjuster().
+      print("Running core interval pipeline")
+      incProgress(0.4)
+      result <- perform_calculations(
         data = InputData(),
         fixed_effects = input$fixed_var,
         random_params = input$random_var,
         by = input$by,
         tolerance_level = input$tolerance_level,
         multiplication_factor = MultiplicationFactorVariances(),
+        percent_for_ci = input$percent_for_ci,
+        percent_for_pi = input$percent_for_pi,
+        confidence_of_tolerance = input$confidence_of_tolerance,
+        log_normal = FALSE,
         covariate_cols = covariate_cols,
         covariate_values = covariate_values
       )
-      predictedDistributions(pred_dist)
-      print(paste("Predicted Distributions:", nrow(pred_dist), "rows"))
-
-      # Calculate CI
-      print("Starting CI calculation")
-      incProgress(0.2)
-      ci_result <- calculate_ci(pred_dist, "median", input$percent_for_ci, "By")
-      print("CI calculation complete")
-      print("CI result column names:")
-      print(names(ci_result))
-
-      # Calculate TI
-      print("Starting TI calculation")
-      incProgress(0.2)
-      ti_result <- calculate_tolerance_interval(
-        pred_dist,
-        "lower_quantile",
-        "upper_quantile",
-        input$confidence_of_tolerance,
-        "By"
-      )
-      print("TI calculation complete")
-      print("TI result column names:")
-      print(names(ti_result))
-
-      # Calculate PI
-      print("Starting PI calculation")
-      incProgress(0.2)
-      pi_result <- calculate_PI(
-        data = pred_dist,
-        percent_for_pi = input$percent_for_pi,
-        Eta = 0.001
-      )
-      print("PI calculation complete")
-      print("PI result column names:")
-      print(names(pi_result))
-
-      # check column names in PI result for debugging
-      print("PI column names:")
-      print(names(pi_result))
-
-      # Merge results
-      print("Merging results")
-      incProgress(0.2)
-      combined_result <- merge(merge(ci_result, ti_result, by = "By"), pi_result, by = "By")
-
-      # Failsafe check
-      if (any(table(combined_result$By) > 1)) {
-        print("Multiple rows detected for some 'By' values. Performing consistency check...")
-        check_consistency <- combined_result %>%
-          group_by(By) %>%
-          summarise(across(everything(), function(x) length(unique(head(x, 5))) == 1)) %>%
-          ungroup()
-
-        if (!all(sapply(check_consistency[,-1], all))) {
-          warning("Inconsistent values detected for some 'By' groups. Using first row for each group.")
-        }
-
-        # Ensure only one row per unique "By" value
-        combined_result <- combined_result %>%
-          group_by(By) %>%
-          summarise(across(everything(), first)) %>%
-          ungroup()
-      }
-
-      # Add the calculation for Reducible Uncertainty (delegates to the package
-      # helper, which guards against a zero-width interval -> NA instead of Inf/NaN)
-      # Convert to percentages
-      combined_result$ReducibleUpper <- round(reducible_fraction(combined_result$TI_Upper, combined_result$PI_Upper, combined_result$Median) * 100, 3)
-      combined_result$ReducibleLower <- round(reducible_fraction(combined_result$TI_Lower, combined_result$PI_Lower, combined_result$Median) * 100, 3)
+      combined_result <- result$data
+      predictedDistributions(result$predicted_distributions)
+      print(paste("Predicted Distributions:",
+                  nrow(result$predicted_distributions), "rows"))
+      print("Core interval pipeline complete")
+      incProgress(0.4)
 
       # Store the combined result
       IntervalsOutputInitial(combined_result)

@@ -14,7 +14,9 @@ perform_calculations(
   percent_for_ci = 95,
   percent_for_pi = 95,
   confidence_of_tolerance = 95,
-  log_normal = FALSE
+  log_normal = FALSE,
+  covariate_cols = NULL,
+  covariate_values = NULL
 )
 }
 \arguments{
@@ -37,12 +39,19 @@ perform_calculations(
 \item{confidence_of_tolerance}{Numeric, confidence level for tolerance intervals (default = 95)}
 
 \item{log_normal}{Logical, whether to transform results from log space (default = FALSE)}
+
+\item{covariate_cols}{Character vector of covariate column names to adjust the
+predicted distributions by, or NULL for none (default = NULL)}
+
+\item{covariate_values}{Numeric vector of covariate values matching
+\code{covariate_cols}, or NULL for none (default = NULL)}
 }
 \value{
 A list containing:
 \itemize{
 \item data: A data frame with calculated intervals and reducible uncertainty metrics
 \item summary: A string summarizing the calculation parameters
+\item predicted_distributions: The raw predicted distributions data frame
 }
 }
 \description{
