@@ -22,5 +22,6 @@ Depends:
     R (>= 4.1.0)
 Suggests:
     testthat (>= 3.0.0),
-    shinytest2
+    shinytest2,
+    chromote
 Config/testthat/edition: 3
