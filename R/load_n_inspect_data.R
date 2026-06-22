@@ -142,6 +142,129 @@ try_loading_methods <- function(file_path, silent) {
   return(loaded_data)
 }
 
+#' Inspect Data for Quality Issues
+#'
+#' Performs a set of non-destructive data quality checks on a data frame (or
+#' data.table) and returns the findings as a named list of human-readable
+#' character messages. This function performs no I/O and emits no conditions
+#' (no \code{warning()} / \code{message()} calls); it simply returns its
+#' findings so callers can decide how to surface them.
+#'
+#' The following checks are performed:
+#' \itemize{
+#'   \item list-type columns (\code{list_warnings})
+#'   \item columns containing NA/NaN values (\code{na_warnings})
+#'   \item character columns mixing numeric and string values
+#'     (\code{mixed_type_warnings})
+#'   \item numeric columns containing only integer values (\code{integer_warnings})
+#'   \item numeric columns containing only zero values (\code{zero_warnings})
+#' }
+#'
+#' @param data A data frame or \code{data.table} to inspect.
+#'
+#' @return A named \code{list} of character vectors describing any issues
+#'   found. Possible names are \code{list_warnings}, \code{na_warnings},
+#'   \code{mixed_type_warnings}, \code{integer_warnings} and
+#'   \code{zero_warnings}; each entry holds one or more \code{sprintf}-formatted
+#'   messages. If inspection fails, the list contains a single \code{warning}
+#'   element with the error message. An empty list is returned when no issues
+#'   are detected.
+#'
+#' @export
+#'
+#' @examples
+#' # Clean data returns an empty list
+#' inspect_data(data.frame(x = c(1.5, 2.5), y = c(3.5, 4.5)))
+#'
+#' # NA values are reported under na_warnings
+#' inspect_data(data.frame(x = c(1, NA, 3), y = 1:3))
+inspect_data <- function(data) {
+  results <- list()
+
+  tryCatch({
+    # Convert to data.frame temporarily to avoid data.table subsetting issues
+    is_dt <- data.table::is.data.table(data)
+    if (is_dt) {
+      data_df <- as.data.frame(data)
+    } else {
+      data_df <- data
+    }
+
+    # Check column types
+    col_types <- sapply(data_df, class)
+    list_cols <- names(which(sapply(col_types, function(x) "list" %in% x)))
+
+    if (length(list_cols) > 0) {
+      results$list_warnings <- sprintf("Column '%s' contains list data which may not be suitable for analysis.", list_cols)
+    }
+
+    # Check for NA and NaN values
+    na_counts <- sapply(data_df, function(col) {
+      if (is.list(col)) {
+        return(0)  # Skip list columns
+      } else {
+        return(sum(is.na(col) | is.nan(col)))
+      }
+    })
+
+    if (sum(na_counts) > 0) {
+      results$na_warnings <- sapply(names(na_counts[na_counts > 0]), function(col) {
+        sprintf("Column '%s' contains %d NA/NaN values.", col, na_counts[col])
+      })
+    }
+
+    # Check for columns with both numeric and string data
+    mixed_type_cols <- sapply(data_df, function(col) {
+      if (is.list(col)) {
+        return(FALSE)  # Skip list columns
+      } else if (is.character(col)) {
+        return(any(grepl("^\\s*-?\\d*\\.?\\d+\\s*$", col)) &&
+                 !all(grepl("^\\s*-?\\d*\\.?\\d+\\s*$", col)))
+      } else {
+        return(FALSE)
+      }
+    })
+
+    if (any(mixed_type_cols)) {
+      results$mixed_type_warnings <- sprintf("Column '%s' contains both numeric and string data.",
+                                             names(which(mixed_type_cols)))
+    }
+
+    # Check for columns with only integers
+    integer_cols <- sapply(data_df, function(col) {
+      if (is.list(col) || !is.numeric(col)) {
+        return(FALSE)  # Skip list columns and non-numeric columns
+      } else {
+        return(all(col == floor(col), na.rm = TRUE))
+      }
+    })
+
+    if (any(integer_cols)) {
+      results$integer_warnings <- sprintf("Column '%s' contains only integer values.",
+                                          names(which(integer_cols)))
+    }
+
+    # Check for columns with only zeros
+    zero_cols <- sapply(data_df, function(col) {
+      if (is.list(col) || !is.numeric(col)) {
+        return(FALSE)  # Skip list columns and non-numeric columns
+      } else {
+        return(all(col == 0, na.rm = TRUE))
+      }
+    })
+
+    if (any(zero_cols)) {
+      results$zero_warnings <- sprintf("Column '%s' contains only zero values.",
+                                       names(which(zero_cols)))
+    }
+
+  }, error = function(e) {
+    results$warning <- paste("Error during data inspection:", e$message)
+  })
+
+  return(results)
+}
+
 #' Inspect Loaded Data
 #'
 #' @param data A data frame to inspect
@@ -150,7 +273,9 @@ try_loading_methods <- function(file_path, silent) {
 #'
 #' @keywords internal
 inspect_loaded_data <- function(data) {
-  # Check for empty data
+  # Check for empty data. These checks are intentionally kept here (and not in
+  # inspect_data()) to preserve existing behaviour for both the package and the
+  # Shiny app.
   if (nrow(data) == 0) {
     warning("The data has 0 rows")
   }
@@ -158,15 +283,20 @@ inspect_loaded_data <- function(data) {
     warning("The data has 0 columns")
   }
 
-  # Check column types
-  col_types <- sapply(data, class)
-  list_cols <- names(which(sapply(col_types, function(x) "list" %in% x)))
+  # Delegate the detection logic to inspect_data(), then translate its named
+  # list of findings back into the warning()/message() calls this function has
+  # historically emitted, preserving the exact existing text.
+  inspection <- inspect_data(data)
+
+  # List-type columns -> warning
+  list_cols <- names(which(sapply(sapply(data, class),
+                                  function(x) "list" %in% x)))
   if (length(list_cols) > 0) {
     warning("The following columns contain list data which may not be suitable for analysis: ",
             paste(list_cols, collapse = ", "))
   }
 
-  # Check for NA and NaN values
+  # NA / NaN values -> warning
   na_counts <- sapply(data, function(col) {
     if (is.list(col)) return(0)
     sum(is.na(col) | is.nan(col))
@@ -178,7 +308,7 @@ inspect_loaded_data <- function(data) {
                   collapse = "\n"))
   }
 
-  # Check for mixed types (numeric and string)
+  # Mixed numeric/string character columns -> warning
   mixed_type_cols <- sapply(data, function(col) {
     if (is.list(col)) return(FALSE)
     if (is.character(col)) {
@@ -192,7 +322,7 @@ inspect_loaded_data <- function(data) {
             paste(names(which(mixed_type_cols)), collapse = ", "))
   }
 
-  # Check for columns with only integers
+  # Integer-only columns -> message
   integer_cols <- sapply(data, function(col) {
     if (is.list(col) || !is.numeric(col)) return(FALSE)
     all(col == floor(col), na.rm = TRUE)
@@ -202,7 +332,7 @@ inspect_loaded_data <- function(data) {
             paste(names(which(integer_cols)), collapse = ", "))
   }
 
-  # Check for columns with only zeros
+  # Zero-only columns -> warning
   zero_cols <- sapply(data, function(col) {
     if (is.list(col) || !is.numeric(col)) return(FALSE)
     all(col == 0, na.rm = TRUE)
