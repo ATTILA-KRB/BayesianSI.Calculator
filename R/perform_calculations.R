@@ -99,10 +99,14 @@ perform_calculations <- function(data,
   }
 
   # Add reducible uncertainty calculations
-  combined_result$ReducibleUpper <- ((combined_result$TI_Upper - combined_result$PI_Upper) /
-                                       (combined_result$TI_Upper - combined_result$Median))
-  combined_result$ReducibleLower <- ((combined_result$TI_Lower - combined_result$PI_Lower) /
-                                       (combined_result$TI_Lower - combined_result$Median))
+  # Guard against a zero-width interval (TI bound == Median) which would
+  # otherwise produce a silent Inf/NaN; return NA in that degenerate case.
+  denom_upper <- combined_result$TI_Upper - combined_result$Median
+  denom_lower <- combined_result$TI_Lower - combined_result$Median
+  combined_result$ReducibleUpper <- ifelse(denom_upper == 0, NA_real_,
+                                            (combined_result$TI_Upper - combined_result$PI_Upper) / denom_upper)
+  combined_result$ReducibleLower <- ifelse(denom_lower == 0, NA_real_,
+                                            (combined_result$TI_Lower - combined_result$PI_Lower) / denom_lower)
 
   # Convert to percentages
   combined_result$ReducibleUpper <- round(combined_result$ReducibleUpper * 100, 3)

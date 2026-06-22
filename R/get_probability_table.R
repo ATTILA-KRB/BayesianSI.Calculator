@@ -8,7 +8,7 @@
 #' @param random_params Character vector of column names for random parameters. Required if data is provided.
 #' @param by Character, name of the column to group by. Required if data is provided. Default is "Single Chain Dataset".
 #' @param by_value Character or numeric, the specific by-value to process. Default is "1".
-#' @param x_value Character or numeric, single value or range in format "[min,max]"
+#' @param x_value Character or numeric, single value or range in format `[min,max]`
 #' @param tolerance_level Numeric, tolerance level percentage (between 0 and 100). Required if data is provided.
 #' @param ci_percent Numeric, confidence interval percentage (default = 90)
 #' @param multiplication_factor Numeric, factor to multiply random parameters variance by (default = 1)
@@ -54,10 +54,10 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
   overall_median <- data$median[1]
   overall_sd <- sqrt(data$variance[1])
 
-  # Generate x values in log space
-  xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
-  xmax_log <- qnorm(0.9999, mean = overall_median, sd = overall_sd)
-  x_values_log <- seq(xmin_log, xmax_log, length.out = n_points)
+  # Generate x values in log space (these are the bounds of the CDF domain)
+  data_xmin_log <- qnorm(0.0001, mean = overall_median, sd = overall_sd)
+  data_xmax_log <- qnorm(0.9999, mean = overall_median, sd = overall_sd)
+  x_values_log <- seq(data_xmin_log, data_xmax_log, length.out = n_points)
 
   # Transform x values for display if log_normal is TRUE
   x_values <- if(log_normal) exp(x_values_log) else x_values_log
@@ -101,7 +101,7 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
     # Set proper column names with corrected capitalization and format
     colnames(table_data) <- c(
       "x value",
-      "Probability of X ≤ x",
+      "Probability of X \u2264 x",
       paste0(ci_percent, "% CI")
     )
 
@@ -116,7 +116,7 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
     x_val_log <- if(log_normal) log(x_val) else x_val
 
     # Check if the log value is in range
-    if (x_val_log >= xmin_log && x_val_log <= xmax_log) {
+    if (x_val_log >= data_xmin_log && x_val_log <= data_xmax_log) {
       # Always use interpolation for precise values - exactly as in the app
       y_val <- approx(x_values_log, y_mean, xout = x_val_log)$y
       ci_lower_val <- approx(x_values_log, ci_lower, xout = x_val_log)$y
@@ -132,7 +132,7 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
       # Set proper column names with corrected capitalization and format
       colnames(table_data) <- c(
         "x value",
-        "Probability of X ≤ x",
+        "Probability of X \u2264 x",
         paste0(ci_percent, "% CI")
       )
     } else {
@@ -146,7 +146,7 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
       # Set proper column names with corrected capitalization and format
       colnames(table_data) <- c(
         "x value",
-        "Probability of X ≤ x",
+        "Probability of X \u2264 x",
         paste0(ci_percent, "% CI")
       )
     }
@@ -159,15 +159,15 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
     xmin_log <- if(log_normal) log(xmin) else xmin
     xmax_log <- if(log_normal) log(xmax) else xmax
 
-    # Check if both values are in range
-    if (xmin_log >= xmin_log && xmin_log <= xmax_log &&
-        xmax_log >= xmin_log && xmax_log <= xmax_log) {
+    # Check if both user-supplied bounds fall within the CDF domain
+    if (xmin_log >= data_xmin_log && xmin_log <= data_xmax_log &&
+        xmax_log >= data_xmin_log && xmax_log <= data_xmax_log) {
 
       # Calculate probabilities using interpolation of mean CDF - exactly as in the app
       y_min <- approx(x_values_log, y_mean, xout = xmin_log)$y
       y_max <- approx(x_values_log, y_mean, xout = xmax_log)$y
 
-      # Calculate range probability: P(xmin ≤ X ≤ xmax) = P(X ≤ xmax) - P(X ≤ xmin)
+      # Calculate range probability: P(xmin <= X <= xmax) = P(X <= xmax) - P(X <= xmin)
       range_prob <- y_max - y_min
 
       # Calculate the CDF value at xmin and xmax for each observation
@@ -200,8 +200,8 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
       # Set proper column names for range case
       colnames(table_data) <- c(
         "x Interval",
-        "P(xmin ≤ X ≤ xmax)",
-        paste0(ci_percent, "% CI for P(xmin ≤ X ≤ xmax)")
+        "P(xmin \u2264 X \u2264 xmax)",
+        paste0(ci_percent, "% CI for P(xmin \u2264 X \u2264 xmax)")
       )
     } else {
       # Create data frame with range information but out of range
@@ -214,8 +214,8 @@ get_probability_table <- function(data = NULL, fixed_effects = NULL, random_para
       # Set proper column names for range case
       colnames(table_data) <- c(
         "x Interval",
-        "P(xmin ≤ X ≤ xmax)",
-        paste0(ci_percent, "% CI for P(xmin ≤ X ≤ xmax)")
+        "P(xmin \u2264 X \u2264 xmax)",
+        paste0(ci_percent, "% CI for P(xmin \u2264 X \u2264 xmax)")
       )
     }
   }

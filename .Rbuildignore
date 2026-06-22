@@ -1,3 +1,7 @@
 ^BayesianStatisticalIntervalsCalculator\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^\.github$
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^CLAUDE\.md$

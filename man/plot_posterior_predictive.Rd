@@ -17,7 +17,7 @@ plot_posterior_predictive(
 \arguments{
 \item{cdf_data}{A dataframe from create_cdf_dataframe() containing CDF information, or a list of such dataframes}
 
-\item{x_value}{Optional. Single numeric value or range \link{min,max} as character string (e.g., "\link{2,5}")}
+\item{x_value}{Optional. Single numeric value or range \verb{[min,max]} as character string (e.g., \verb{[2,5]})}
 
 \item{title}{Optional. Custom plot title. If NULL, auto-generates based on by-value}
 

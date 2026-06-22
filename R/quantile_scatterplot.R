@@ -261,3 +261,35 @@ quantile_scatterplot <- function(data = NULL,
 
   return(p)
 }
+
+#' Compute points tracing a confidence ellipse for a 2D covariance matrix
+#'
+#' Internal helper used by [quantile_scatterplot()] to draw credible ellipses
+#' around the lower/upper quantile clouds.
+#'
+#' @param cov_matrix A 2x2 covariance matrix.
+#' @param centre Numeric vector of length 2 giving the ellipse centre.
+#' @param level Confidence level between 0 and 1. Default is 0.95.
+#' @param npoints Number of points used to trace the ellipse. Default is 100.
+#'
+#' @return A matrix with columns "x" and "y" giving the ellipse coordinates.
+#' @noRd
+create_confidence_ellipse_points <- function(cov_matrix, centre,
+                                             level = 0.95, npoints = 100) {
+  # Radius scaling from the chi-squared distribution with 2 degrees of freedom
+  radius <- sqrt(stats::qchisq(level, df = 2))
+
+  # Unit circle
+  theta <- seq(0, 2 * pi, length.out = npoints)
+  unit_circle <- cbind(cos(theta), sin(theta))
+
+  # Map the unit circle through the (scaled) principal axes of the covariance
+  eig <- eigen(cov_matrix, symmetric = TRUE)
+  axes <- eig$vectors %*% diag(sqrt(pmax(eig$values, 0)), nrow = 2)
+
+  ellipse <- radius * (unit_circle %*% t(axes))
+  ellipse <- sweep(ellipse, 2, centre, FUN = "+")
+  colnames(ellipse) <- c("x", "y")
+
+  return(ellipse)
+}

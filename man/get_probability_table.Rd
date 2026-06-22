@@ -30,7 +30,7 @@ get_probability_table(
 
 \item{by_value}{Character or numeric, the specific by-value to process. Default is "1".}
 
-\item{x_value}{Character or numeric, single value or range in format "\link{min,max}"}
+\item{x_value}{Character or numeric, single value or range in format \verb{[min,max]}}
 
 \item{tolerance_level}{Numeric, tolerance level percentage (between 0 and 100). Required if data is provided.}
 
