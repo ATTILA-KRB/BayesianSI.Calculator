@@ -264,18 +264,45 @@ quantile_scatterplot <- function(data = NULL,
 
 #' Compute points tracing a confidence ellipse for a 2D covariance matrix
 #'
-#' Internal helper used by [quantile_scatterplot()] to draw credible ellipses
-#' around the lower/upper quantile clouds.
+#' Helper used by [quantile_scatterplot()] to draw credible ellipses around the
+#' lower/upper quantile clouds. Negative eigenvalues arising from degenerate or
+#' numerically non-positive-definite covariance matrices are clamped to zero so
+#' the ellipse degrades gracefully rather than erroring.
 #'
 #' @param cov_matrix A 2x2 covariance matrix.
 #' @param centre Numeric vector of length 2 giving the ellipse centre.
-#' @param level Confidence level between 0 and 1. Default is 0.95.
-#' @param npoints Number of points used to trace the ellipse. Default is 100.
+#' @param level Confidence level strictly between 0 and 1. Default is 0.95.
+#' @param npoints Number of points used to trace the ellipse. Must be >= 4.
+#'   Default is 100.
 #'
-#' @return A matrix with columns "x" and "y" giving the ellipse coordinates.
-#' @noRd
+#' @return A matrix with columns \code{"x"} and \code{"y"} giving the ellipse
+#'   coordinates.
+#'
+#' @examples
+#' create_confidence_ellipse_points(matrix(c(1, 0, 0, 1), 2), c(0, 0))
+#' create_confidence_ellipse_points(
+#'   cov_matrix = matrix(c(2, 0.5, 0.5, 1), 2),
+#'   centre = c(1, -1),
+#'   level = 0.9,
+#'   npoints = 200
+#' )
+#'
+#' @export
 create_confidence_ellipse_points <- function(cov_matrix, centre,
                                              level = 0.95, npoints = 100) {
+  if (!is.matrix(cov_matrix) || any(dim(cov_matrix) != c(2, 2))) {
+    stop("'cov_matrix' must be a 2x2 matrix")
+  }
+  if (!is.numeric(centre) || length(centre) != 2) {
+    stop("'centre' must be a numeric vector of length 2")
+  }
+  if (!is.numeric(level) || length(level) != 1 || level <= 0 || level >= 1) {
+    stop("'level' must be a number between 0 and 1")
+  }
+  if (!is.numeric(npoints) || length(npoints) != 1 || npoints < 4) {
+    stop("'npoints' must be a number >= 4")
+  }
+
   # Radius scaling from the chi-squared distribution with 2 degrees of freedom
   radius <- sqrt(stats::qchisq(level, df = 2))
 
