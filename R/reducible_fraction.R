@@ -1,7 +1,7 @@
 #' Reducible uncertainty fraction
 #'
-#' Internal helper computing the fraction of the tolerance-interval gap that is
-#' not covered by the prediction interval, i.e. `(TI - PI) / (TI - Median)`.
+#' Computes the fraction of the tolerance-interval gap that is not covered by
+#' the prediction interval, i.e. `(TI - PI) / (TI - Median)`.
 #'
 #' Guards against a zero-width interval (a tolerance-interval bound equal to the
 #' median), which would otherwise divide by zero and yield a silent `Inf`/`NaN`;
@@ -16,7 +16,14 @@
 #'
 #' @return Numeric vector of reducible fractions, with `NA` where
 #'   `ti_bound == median`.
-#' @noRd
+#' @export
+#'
+#' @examples
+#' reducible_fraction(10, 8, 4)
+#' # NA when the tolerance-interval bound equals the median
+#' reducible_fraction(5, 5, 5)
+#' # Vectorised over its arguments
+#' reducible_fraction(c(10, 5), c(8, 5), c(4, 5))
 reducible_fraction <- function(ti_bound, pi_bound, median) {
   denom <- ti_bound - median
   ifelse(denom == 0, NA_real_, (ti_bound - pi_bound) / denom)
