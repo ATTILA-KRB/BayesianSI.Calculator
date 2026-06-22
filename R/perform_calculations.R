@@ -13,11 +13,16 @@
 #' @param percent_for_pi Numeric, percentage for prediction intervals (default = 95)
 #' @param confidence_of_tolerance Numeric, confidence level for tolerance intervals (default = 95)
 #' @param log_normal Logical, whether to transform results from log space (default = FALSE)
+#' @param covariate_cols Character vector of covariate column names to adjust the
+#'   predicted distributions by, or NULL for none (default = NULL)
+#' @param covariate_values Numeric vector of covariate values matching
+#'   \code{covariate_cols}, or NULL for none (default = NULL)
 #'
 #' @return A list containing:
 #' \itemize{
 #'   \item data: A data frame with calculated intervals and reducible uncertainty metrics
 #'   \item summary: A string summarizing the calculation parameters
+#'   \item predicted_distributions: The raw predicted distributions data frame
 #' }
 #'
 #' @examples
@@ -46,7 +51,9 @@ perform_calculations <- function(data,
                                  percent_for_ci = 95,
                                  percent_for_pi = 95,
                                  confidence_of_tolerance = 95,
-                                 log_normal = FALSE) {
+                                 log_normal = FALSE,
+                                 covariate_cols = NULL,
+                                 covariate_values = NULL) {
 
   # Input validation
   if (!is.data.frame(data)) {
@@ -60,7 +67,9 @@ perform_calculations <- function(data,
     random_params = random_params,
     by = by,
     tolerance_level = tolerance_level,
-    multiplication_factor = multiplication_factor
+    multiplication_factor = multiplication_factor,
+    covariate_cols = covariate_cols,
+    covariate_values = covariate_values
   )
 
   # Calculate CI
@@ -151,6 +160,7 @@ perform_calculations <- function(data,
   # Return both the data and the summary string
   return(list(
     data = combined_result,
-    summary = summary_str
+    summary = summary_str,
+    predicted_distributions = pred_dist
   ))
 }
