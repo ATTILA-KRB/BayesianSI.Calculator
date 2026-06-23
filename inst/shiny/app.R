@@ -2897,6 +2897,24 @@ server <- function(input, output, session) {
     })
   })
 
+  # Test-only hooks. These are registered only when the app runs under Shiny
+  # test mode (e.g. driven by shinytest2); they are a no-op in normal use.
+  # They expose the computed pipeline output so an end-to-end test can assert
+  # the de-duplicated app -> package pipeline (perform_calculations, the CI/TI/PI
+  # helpers, reducible_fraction) actually produced results in the live reactive
+  # context, not just in offline equivalence checks.
+  shiny::exportTestValues(
+    ci_calculated  = CICalculated(),
+    intervals_nrow = {
+      d <- IntervalsOutputActual()
+      if (is.null(d)) 0L else nrow(d)
+    },
+    intervals_cols = {
+      d <- IntervalsOutputActual()
+      if (is.null(d)) character(0) else names(d)
+    }
+  )
+
 }
 
 
